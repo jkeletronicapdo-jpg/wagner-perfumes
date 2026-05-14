@@ -437,7 +437,7 @@ footer a:hover { opacity: 1; color: var(--dourado); }
 
 /* ===== RESPONSIVO ===== */
 @media (max-width: 980px) {
- nav a, .cart { display: none; }
+ nav a { display: none; }
  .hamburger { display: block; }
  .hero-content { grid-template-columns: 1fr; }
  .mother-card { height: 320px; }

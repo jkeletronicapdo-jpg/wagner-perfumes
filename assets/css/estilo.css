@@ -15,7 +15,9 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
- font-family: "Poppins", sans-serif;
+ font-family: "Cormorant Garamond", serif;
+ font-size: 18px;
+ font-weight: 400;
  background: var(--branco);
  color: var(--marrom);
 }
@@ -45,10 +47,11 @@ nav {
  display: flex;
  align-items: center;
  gap: 34px;
- font-size: 13px;
+ font-size: 14px;
  text-transform: uppercase;
- letter-spacing: 2px;
- font-weight: 600;
+ letter-spacing: 2.5px;
+ font-weight: 500;
+ letter-spacing: 3px;
 }
 nav a { color: white; text-decoration: none; opacity: .9; }
 nav a:hover { opacity: 1; color: var(--dourado); }
@@ -70,7 +73,7 @@ nav a:hover { opacity: 1; color: var(--dourado); }
  font-size: 11px;
  display: none;
  place-items: center;
- font-family: "Poppins", sans-serif;
+ font-family: "Cormorant Garamond", serif;
  font-weight: 600;
 }
 .hamburger { display: none; background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
@@ -260,7 +263,7 @@ section { padding: 70px 6%; }
  font-weight: 700;
  cursor: pointer;
  transition: .2s;
- font-family: "Poppins", sans-serif;
+ font-family: "Cormorant Garamond", serif;
 }
 .buy:hover { background: #b82345; }
 
@@ -377,7 +380,7 @@ footer a:hover { opacity: 1; color: var(--dourado); }
  width: 100%; padding: 13px;
  background: linear-gradient(135deg, var(--rose-dark), #d9365d);
  border: none; color: white;
- font-family: "Poppins", sans-serif; font-weight: 700;
+ font-family: "Cormorant Garamond", serif; font-weight: 700;
  font-size: .78rem; text-transform: uppercase; letter-spacing: 2px;
  cursor: pointer; transition: .3s; border-radius: 6px;
 }
@@ -406,7 +409,7 @@ footer a:hover { opacity: 1; color: var(--dourado); }
  position: fixed; bottom: 25px; left: 50%;
  transform: translateX(-50%) translateY(80px);
  background: var(--marrom); color: var(--branco);
- padding: 12px 24px; font-family: "Poppins", sans-serif;
+ padding: 12px 24px; font-family: "Cormorant Garamond", serif;
  font-size: .82rem; z-index: 999;
  opacity: 0; transition: all .4s;
  box-shadow: 0 4px 20px rgba(58,31,24,.25); border-radius: 6px;
@@ -485,7 +488,7 @@ footer a:hover { opacity: 1; color: var(--dourado); }
 .fg input, .fg textarea, .fg select {
  width: 100%; padding: 11px 14px;
  border: 1px solid rgba(58,31,24,.12);
- font-family: "Poppins", sans-serif; font-size: .9rem;
+ font-family: "Cormorant Garamond", serif; font-size: .9rem;
  background: white; outline: none; transition: border-color .3s; border-radius: 4px;
 }
 .fg input:focus, .fg textarea:focus, .fg select:focus { border-color: var(--rose-dark); }
@@ -494,7 +497,7 @@ footer a:hover { opacity: 1; color: var(--dourado); }
  width: 100%; padding: 14px;
  background: linear-gradient(135deg, var(--rose-dark), #d9365d);
  border: none; color: white;
- font-family: "Poppins", sans-serif; font-weight: 700;
+ font-family: "Cormorant Garamond", serif; font-weight: 700;
  font-size: .8rem; letter-spacing: 2px; text-transform: uppercase;
  cursor: pointer; border-radius: 6px; transition: .3s;
 }

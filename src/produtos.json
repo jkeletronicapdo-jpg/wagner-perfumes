@@ -1,0 +1,162 @@
+{
+    "categorias": [
+        {
+            "id": "masculino",
+            "nome": "Masculino",
+            "icone": "masculino.svg",
+            "imagem": "cat_masculino.jpg"
+        },
+        {
+            "id": "feminino",
+            "nome": "Feminino",
+            "icone": "feminino.svg",
+            "imagem": "cat_feminino.jpg"
+        },
+        {
+            "id": "unissex",
+            "nome": "Unissex",
+            "icone": "unissex.svg",
+            "imagem": "cat_unissex.jpg"
+        },
+        {
+            "id": "nicho",
+            "nome": "Nicho / Premium",
+            "icone": "nicho.svg",
+            "imagem": "cat_premium.jpg"
+        }
+    ],
+    "produtos": [
+        {
+            "id": 1,
+            "nome": "Malbec Ultra Masculino",
+            "categoria": "masculino",
+            "descricao": "Fragrância amadeirada com notas de couro e especiarias. Perfeito para noites especiais.",
+            "notas": "Couro, madeira, especiarias, almíscar",
+            "preco": 189.9,
+            "destaque": true,
+            "imagem": "perfume_png_01.png",
+            "marca": "Lancôme"
+        },
+        {
+            "id": 2,
+            "nome": "Flora Radiante",
+            "categoria": "feminino",
+            "descricao": "Um buquê floral com toques cítricos. Leve, fresco e inesquecível.",
+            "notas": "Jasmim, bergamota, rosas, almíscar branco",
+            "preco": 169.9,
+            "destaque": true,
+            "imagem": "perfume_png_02.png",
+            "marca": "Carolina Herrera"
+        },
+        {
+            "id": 3,
+            "nome": "Essence Pure",
+            "categoria": "unissex",
+            "descricao": "Minimalista e sofisticado. Notas aquáticas encontram madeiras nobres.",
+            "notas": "Água de coco, cedro, sândalo, musgo",
+            "preco": 219.9,
+            "destaque": true,
+            "imagem": "perfume_png_03.png",
+            "marca": "Calvin Klein"
+        },
+        {
+            "id": 4,
+            "nome": "Oud Noir Premium",
+            "categoria": "nicho",
+            "descricao": "A pureza do oud combinado com açafrão e âmbar. Exclusividade em cada gota.",
+            "notas": "Oud, açafrão, âmbar, baunilha",
+            "preco": 349.9,
+            "destaque": true,
+            "imagem": "perfume_png_04.png",
+            "marca": "Chloé"
+        },
+        {
+            "id": 5,
+            "nome": "Alto-Marin",
+            "categoria": "masculino",
+            "descricao": "A brisa do mar engarrafada. Notas aquáticas com toque herbal.",
+            "notas": "Algas marinhas, lavanda, musgo de carvalho",
+            "preco": 149.9,
+            "destaque": false,
+            "imagem": "perfume_png_05.png",
+            "marca": "Giorgio Armani"
+        },
+        {
+            "id": 6,
+            "nome": "Veludo Noturno",
+            "categoria": "feminino",
+            "descricao": "Notas orientais envolventes. Âmbar e baunilha para uma presença marcante.",
+            "notas": "Âmbar, baunilha, patchouli, almíscar",
+            "preco": 199.9,
+            "destaque": false,
+            "imagem": "perfume_png_06.png",
+            "marca": "Dior"
+        },
+        {
+            "id": 7,
+            "nome": "Caminho do Sol",
+            "categoria": "unissex",
+            "descricao": "Cítrico e vibrante. Perfeito para o dia a dia.",
+            "notas": "Laranja sanguínea, gengibre, chá branco",
+            "preco": 159.9,
+            "destaque": false,
+            "imagem": "perfume_png_01.png",
+            "marca": "Jean Paul Gaultier"
+        },
+        {
+            "id": 8,
+            "nome": "Sândalo Real",
+            "categoria": "nicho",
+            "descricao": "Sândalo indiano puro com toques de resina. Para quem aprecia o raro.",
+            "notas": "Sândalo, olíbano, cedro, âmbar cinzento",
+            "preco": 419.9,
+            "destaque": false,
+            "imagem": "perfume_png_02.png",
+            "marca": "Viktor & Rolf"
+        },
+        {
+            "id": 9,
+            "nome": "Pele ao Sol",
+            "categoria": "feminino",
+            "descricao": "Notas solares e florais que lembram um dia de verão.",
+            "notas": "Flor de laranjeira, pêssego, almíscar",
+            "preco": 179.9,
+            "destaque": false,
+            "imagem": "perfume_png_03.png",
+            "marca": "Yves Saint Laurent"
+        },
+        {
+            "id": 10,
+            "nome": "Tabaco & Baunilha",
+            "categoria": "masculino",
+            "descricao": "Fumo doce e envolvente. Personalidade forte e marcante.",
+            "notas": "Tabaco, baunilha, rum, madeira de teca",
+            "preco": 229.9,
+            "destaque": false,
+            "imagem": "perfume_png_04.png",
+            "marca": "Prada"
+        },
+        {
+            "id": 11,
+            "nome": "Água de Colônia Fresh",
+            "categoria": "masculino",
+            "descricao": "Clássico e refrescante. O perfume do dia a dia que nunca sai de moda.",
+            "notas": "Limão siciliano, lavanda, alecrim, musgo",
+            "preco": 89.9,
+            "destaque": false,
+            "imagem": "perfume_png_05.png",
+            "marca": "Tom Ford"
+        },
+        {
+            "id": 12,
+            "nome": "Rosas de Damasco",
+            "categoria": "feminino",
+            "descricao": "Rosas autênticas com toque adocicado. Romântico e atemporal.",
+            "notas": "Rosa damascena, violeta, sândalo, almíscar",
+            "preco": 209.9,
+            "destaque": false,
+            "imagem": "perfume_png_06.png",
+            "marca": "Givenchy"
+        }
+    ]
+}

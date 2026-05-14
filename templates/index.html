@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Wagner Perfumes — Promoção Mês das Mães{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+ <div class="heart h1">❤</div>
+ <div class="heart h2">❤</div>
+ <div class="heart h3">❤</div>
+
+ <div class="hero-content">
+ <div class="mother-card">
+ <img src="{{ url_for('static', filename='img/hero/mae_bebe_hero.jpg') }}" alt="Mãe com bebê" loading="eager">
+ </div>
+
+ <div class="promo">
+ <h1>#promoção <span>Mês das Mães</span></h1>
+ <p>Concorra a <strong>R$ 300</strong> em vale-compras.</p>
+ <a class="btn-hero" href="#promocao">Confira o regulamento</a>
+ </div>
+ </div>
+
+ <div class="perfume-strip">
+ {% for p in produtos[:6] %}
+ <img src="{{ url_for('static', filename='img/produtos/perfume_png_0' + loop.index|string + '.png') }}" alt="{{ p.nome }}" loading="lazy">
+ {% endfor %}
+ </div>
+
+ <div class="date-bar">14 de Maio · Dia das Mães</div>
+</section>
+
+<!-- PRODUTOS -->
+<section class="products" id="perfumes">
+ <h2 class="sec-title">Destaques da Promoção</h2>
+ <p class="sec-sub">Perfumes selecionados para presentear com elegância</p>
+
+ <div class="product-grid">
+ {% for p in produtos %}
+ <article class="product-card">
+ <img src="{{ url_for('static', filename='img/produtos/perfume_png_0' + loop.index|string + '.png') }}" alt="{{ p.nome }}" loading="lazy">
+ <h3>{{ p.nome }}</h3>
+ <small>{{ p.marca if p.marca else p.categoria_nome }}</small>
+ <div class="price">R$ {{ "%.2f"|format(p.preco) }}</div>
+ <button class="buy" onclick="adicionarAoCarrinho({{ p.id }})">COMPRAR</button>
+ </article>
+ {% endfor %}
+ </div>
+</section>
+
+<!-- CATEGORIAS -->
+<section class="categories" id="categorias">
+ <h2 class="sec-title">Categorias</h2>
+ <p class="sec-sub">Encontre o perfume ideal para cada momento</p>
+
+ <div class="cat-grid">
+ {% for cat in categorias %}
+ <div class="cat" style="background-image:url('{{ url_for('static', filename='img/categorias/' + cat.imagem) }}')">
+ <div class="cat-content">
+ <h3>{{ cat.nome }}</h3>
+ <a href="#" onclick="filtrarCategoria('{{ cat.id }}'); return false;">Ver coleção</a>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+</section>
+
+<!-- PROMOÇÃO -->
+<section class="promo-rules" id="promocao">
+ <h2>Promoção Mês das Mães</h2>
+ <p>
+ Nas compras participantes, concorra a R$ 300 em vale-compras para escolher seus perfumes favoritos.
+ Uma campanha especial da Wagner Perfumes para celebrar quem deixa presença por onde passa.
+ </p>
+ <a class="btn-hero" href="https://wa.me/5546999425021" target="_blank">Comprar pelo WhatsApp</a>
+</section>
+
+{% endblock %}

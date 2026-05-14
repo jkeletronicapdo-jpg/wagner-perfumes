@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>Wagner Perfumes — Painel Admin</title>
+ <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+ <style>
+ :root {
+ --rose: #d98b8b; --rose-dark: #b94f5f; --cobre: #9b4f35;
+ --marrom: #3a1f18; --bege: #f6dfd2; --dourado: #c9a646; --branco: #fff7f1;
+ }
+ * { box-sizing: border-box; margin:0; padding:0; }
+ body {
+ font-family: "Poppins", sans-serif;
+ background: #f5f0eb; color: var(--marrom);
+ display: flex; min-height: 100vh;
+ }
+ /* Sidebar */
+ .sidebar {
+ width: 230px; background: var(--marrom); color: white;
+ padding: 30px 20px; display: flex; flex-direction: column;
+ position: fixed; top: 0; left: 0; bottom: 0;
+ }
+ .sidebar h2 {
+ font-family: "Playfair Display", serif;
+ font-size: 18px; letter-spacing: 2px;
+ color: var(--dourado); margin-bottom: 30px;
+ }
+ .sidebar a {
+ color: rgba(255,255,255,.7); text-decoration: none;
+ display: block; padding: 10px 14px; margin-bottom: 4px;
+ border-radius: 6px; font-size: 14px; transition: .2s;
+ }
+ .sidebar a:hover, .sidebar a.active {
+ background: rgba(255,255,255,.08); color: var(--dourado);
+ }
+ .sidebar .logout {
+ margin-top: auto; color: rgba(255,255,255,.4);
+ font-size: 13px;
+ }
+ /* Main */
+ .main {
+ margin-left: 230px; flex: 1; padding: 30px;
+ }
+ .top-bar {
+ display: flex; justify-content: space-between; align-items: center;
+ margin-bottom: 30px;
+ }
+ .top-bar h1 {
+ font-family: "Playfair Display", serif; font-size: 28px;
+ }
+ .top-bar .stats {
+ display: flex; gap: 20px;
+ }
+ .stat-card {
+ background: white; padding: 16px 24px; border-radius: 10px;
+ box-shadow: 0 2px 8px rgba(0,0,0,.04); text-align: center;
+ min-width: 100px;
+ }
+ .stat-card .num { font-size: 24px; font-weight: 700; color: var(--rose-dark); }
+ .stat-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+ /* Tabs */
+ .tab-bar { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid #ddd; }
+ .tab-bar button {
+ background: none; border: none; padding: 12px 24px;
+ font-family: "Poppins", sans-serif; font-size: 14px; font-weight: 500;
+ cursor: pointer; color: #888; border-bottom: 2px solid transparent;
+ margin-bottom: -2px; transition: .2s;
+ }
+ .tab-bar button.active { color: var(--rose-dark); border-color: var(--rose-dark); }
+ .tab-content { display: none; }
+ .tab-content.active { display: block; }
+
+ /* Tabela */
+ table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+ th { background: var(--marrom); color: white; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+ td { padding: 12px 16px; border-bottom: 1px solid #f0ebe6; font-size: 13px; vertical-align: middle; }
+ tr:hover td { background: #faf5f0; }
+
+ .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+ .badge-recebido { background: #fff3cd; color: #856404; }
+ .badge-enviado { background: #d4edda; color: #155724; }
+ .badge-entregue { background: #cce5ff; color: #004085; }
+
+ /* Form Produto */
+ .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+ .form-grid .full { grid-column: span 2; }
+ .form-grid label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; color: var(--marrom); }
+ .form-grid input, .form-grid select, .form-grid textarea {
+ width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+ font-family: "Poppins", sans-serif; font-size: 14px; border-radius: 6px; outline: none;
+ }
+ .form-grid input:focus, .form-grid select:focus { border-color: var(--rose-dark); }
+ .btn { padding: 10px 24px; border: none; border-radius: 6px; font-family: "Poppins", sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: .2s; }
+ .btn-primary { background: var(--rose-dark); color: white; }
+ .btn-primary:hover { background: #a33a4a; }
+ .btn-edit { background: none; border: 1px solid var(--dourado); color: var(--dourado); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+ .btn-delete { background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+ .btn-sm { font-size: 12px; margin: 0 2px; }
+ .msg { padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
+ .msg-ok { background: #d4edda; color: #155724; display: block; }
+ .msg-erro { background: #f8d7da; color: #721c24; display: block; }
+ </style>
+</head>
+<body>
+
+<div class="sidebar">
+ <h2>WAGNER<br>PERFUMES</h2>
+ <a href="#" class="active" onclick="mudarAba('pedidos',this)">📦 Pedidos</a>
+ <a href="#" onclick="mudarAba('produtos',this)">🧴 Produtos</a>
+ <a href="#" onclick="mudarAba('config',this)">⚙️ Config</a>
+ <div style="flex:1"></div>
+ <div style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:8px;">
+  Versão 1.0 — JC Infocell
+ </div>
+</div>
+
+<div class="main">
+ <div class="top-bar">
+  <h1>Painel Admin</h1>
+  <div class="stats">
+   <div class="stat-card"><div class="num" id="statPedidos">0</div><div class="label">Pedidos</div></div>
+   <div class="stat-card"><div class="num" id="statProdutos">0</div><div class="label">Produtos</div></div>
+   <div class="stat-card"><div class="num" id="statReceita">R$ 0</div><div class="label">Receita</div></div>
+  </div>
+ </div>
+
+ <div id="msg" class="msg"></div>
+
+ <!-- ABA PEDIDOS -->
+ <div class="tab-content active" id="tabPedidos">
+  <div class="tab-bar">
+   <button class="active" onclick="filtrarPedidos('todos',this)">Todos</button>
+   <button onclick="filtrarPedidos('recebido',this)">Recebidos</button>
+   <button onclick="filtrarPedidos('enviado',this)">Enviados</button>
+   <button onclick="filtrarPedidos('entregue',this)">Entregues</button>
+  </div>
+  <div style="overflow-x:auto;">
+  <table>
+   <thead><tr><th>ID</th><th>Data</th><th>Cliente</th><th>WhatsApp</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Ações</th></tr></thead>
+   <tbody id="tabelaPedidos"></tbody>
+  </table>
+  </div>
+  <div id="semPedidos" style="text-align:center;padding:40px;color:#888;">Nenhum pedido encontrado.</div>
+ </div>
+
+ <!-- ABA PRODUTOS -->
+ <div class="tab-content" id="tabProdutos">
+  <h3 style="margin-bottom:16px;">Adicionar / Editar Produto</h3>
+  <form id="formProduto" onsubmit="return salvarProduto(event)" style="margin-bottom:30px;">
+   <input type="hidden" id="editId" value="">
+   <div class="form-grid">
+    <div><label>Nome do perfume</label><input type="text" id="pNome" required></div>
+    <div><label>Marca</label><input type="text" id="pMarca"></div>
+    <div><label>Preço (R$)</label><input type="number" id="pPreco" step="0.01" required></div>
+    <div><label>Categoria</label>
+     <select id="pCategoria">
+      <option value="masculino">Masculino</option>
+      <option value="feminino">Feminino</option>
+      <option value="unissex">Unissex</option>
+      <option value="nicho">Nicho / Premium</option>
+     </select>
+    </div>
+    <div class="full"><label>Descrição</label><textarea id="pDesc" rows="2"></textarea></div>
+    <div class="full">
+     <label>Imagem (nome do arquivo em assets/img/produtos/)</label>
+     <input type="text" id="pImagem" placeholder="ex: perfume_png_01.png">
+     <small style="color:#888;">As imagens disponíveis estão na pasta img/produtos/</small>
+    </div>
+    <div><label>Em destaque?</label>
+     <select id="pDestaque">
+      <option value="true">Sim</option>
+      <option value="false">Não</option>
+     </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+     <button type="submit" class="btn btn-primary" id="btnSalvarProduto">Salvar Produto</button>
+     <button type="button" class="btn" style="background:#ddd;" onclick="cancelarEdicao()">Cancelar</button>
+    </div>
+   </div>
+  </form>
+
+  <h3 style="margin-bottom:12px;">Produtos Cadastrados</h3>
+  <div style="overflow-x:auto;">
+  <table>
+   <thead><tr><th>#</th><th>Imagem</th><th>Nome</th><th>Marca</th><th>Preço</th><th>Categoria</th><th>Destaque</th><th>Ações</th></tr></thead>
+   <tbody id="tabelaProdutos"></tbody>
+  </table>
+  </div>
+ </div>
+
+ <!-- ABA CONFIG -->
+ <div class="tab-content" id="tabConfig">
+  <h3 style="margin-bottom:16px;">Configurações da Loja</h3>
+  <div class="form-grid" style="max-width:500px;">
+   <div class="full"><label>Nome da loja</label><input type="text" id="cfgNome" value="Wagner Perfumes"></div>
+   <div class="full"><label>WhatsApp (com DDD)</label><input type="text" id="cfgWhats" value="5546999425021"></div>
+   <div class="full"><label>Chave PIX</label><input type="text" id="cfgPix" value="5546999425021"></div>
+   <div class="full">
+    <label>Mensagem da Promoção</label>
+    <textarea id="cfgPromo" rows="2">Concorra a R$ 300 em vale-compras.</textarea>
+   </div>
+   <div><button class="btn btn-primary" onclick="salvarConfig()">Salvar Config</button></div>
+  </div>
+  <div style="margin-top:30px;padding:20px;background:white;border-radius:10px;">
+   <h4 style="margin-bottom:8px;">📊 Resumo do Negócio</h4>
+   <p id="cfgResumo">Carregando...</p>
+  </div>
+ </div>
+</div>
+
+<script>
+// === NAVEGAÇÃO ===
+function mudarAba(nome, el) {
+ document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+ document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+ document.getElementById('tab' + nome.charAt(0).toUpperCase() + nome.slice(1)).classList.add('active');
+ if (el) el.classList.add('active');
+}
+
+// === PEDIDOS ===
+let pedidosData = [];
+let filtroStatus = 'todos';
+
+function carregarPedidos() {
+ fetch('/api/pedidos')
+  .then(r => r.json())
+  .then(dados => {
+   pedidosData = dados;
+   renderizarPedidos();
+   atualizarStats();
+   atualizarResumo();
+  });
+}
+
+function renderizarPedidos() {
+ const tbody = document.getElementById('tabelaPedidos');
+ const sem = document.getElementById('semPedidos');
+ const filtrados = filtroStatus === 'todos' ? pedidosData : pedidosData.filter(p => p.status === filtroStatus);
+ 
+ if (filtrados.length === 0) {
+  tbody.innerHTML = '';
+  sem.style.display = 'block';
+  return;
+ }
+ sem.style.display = 'none';
+
+ tbody.innerHTML = filtrados.map(p => {
+  const badgeClass = p.status === 'recebido' ? 'badge-recebido' : p.status === 'enviado' ? 'badge-enviado' : 'badge-entregue';
+  const itens = (p.itens || []).map(i => `${i.nome} x${i.qty}`).join(', ');
+  return `<tr>
+   <td style="font-family:monospace;font-size:12px;">${p.id}</td>
+   <td>${p.data || '-'}</td>
+   <td><strong>${p.nome || '-'}</strong><br><small style="color:#888;">${p.cidade || ''}${p.estado ? '/'+p.estado : ''}</small></td>
+   <td>${p.telefone || '-'}</td>
+   <td style="font-size:12px;">${itens || '-'}</td>
+   <td><strong>R$ ${(p.total || 0).toFixed(2)}</strong></td>
+   <td>${p.pagamento || '-'}${p.parcelas && p.parcelas > 1 ? ' ('+p.parcelas+'x)' : ''}</td>
+   <td><span class="badge ${badgeClass}">${p.status}</span></td>
+   <td>
+    <button class="btn-edit btn-sm" onclick="alterarStatus('${p.id}','enviado')">📦 Enviar</button>
+    <button class="btn-edit btn-sm" onclick="alterarStatus('${p.id}','entregue')">✅ Entregar</button>
+    <button class="btn-delete btn-sm" onclick="excluirPedido('${p.id}')">🗑</button>
+   </td>
+  </tr>`;
+ }).join('');
+}
+
+function filtrarPedidos(status, btn) {
+ filtroStatus = status;
+ document.querySelectorAll('#tabPedidos .tab-bar button').forEach(b => b.classList.remove('active'));
+ if (btn) btn.classList.add('active');
+ renderizarPedidos();
+}
+
+function alterarStatus(id, novoStatus) {
+ fetch('/api/pedido/' + id + '/status', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ status: novoStatus })
+ }).then(r => r.json()).then(() => {
+  carregarPedidos();
+  mostrarMsg('Pedido ' + id + ' atualizado para ' + novoStatus, 'ok');
+ });
+}
+
+function excluirPedido(id) {
+ if (!confirm('Excluir pedido ' + id + '?')) return;
+ fetch('/api/pedido/' + id, { method: 'DELETE' })
+  .then(r => r.json()).then(() => {
+   carregarPedidos();
+   mostrarMsg('Pedido ' + id + ' excluído', 'ok');
+  });
+}
+
+// === PRODUTOS ===
+let produtosData = [];
+
+function carregarProdutos() {
+ fetch('/api/produtos')
+  .then(r => r.json())
+  .then(d => {
+   produtosData = d;
+   renderizarProdutos();
+   document.getElementById('statProdutos').textContent = d.length;
+  });
+}
+
+function renderizarProdutos() {
+ const tbody = document.getElementById('tabelaProdutos');
+ tbody.innerHTML = produtosData.map(p => `<tr>
+  <td>${p.id}</td>
+  <td><img src="/static/img/produtos/${p.imagem}" style="width:40px;height:50px;object-fit:contain;" onerror="this.style.display='none'"></td>
+  <td><strong>${p.nome}</strong></td>
+  <td>${p.marca || '-'}</td>
+  <td>R$ ${p.preco.toFixed(2)}</td>
+  <td>${p.categoria}</td>
+  <td>${p.destaque ? '⭐ Sim' : '-'}</td>
+  <td>
+   <button class="btn-edit btn-sm" onclick="editarProduto(${p.id})">✏️ Editar</button>
+   <button class="btn-delete btn-sm" onclick="excluirProduto(${p.id})">🗑</button>
+  </td>
+ </tr>`).join('');
+}
+
+function editarProduto(id) {
+ const p = produtosData.find(x => x.id === id);
+ if (!p) return;
+ document.getElementById('editId').value = p.id;
+ document.getElementById('pNome').value = p.nome;
+ document.getElementById('pMarca').value = p.marca || '';
+ document.getElementById('pPreco').value = p.preco;
+ document.getElementById('pCategoria').value = p.categoria;
+ document.getElementById('pDesc').value = p.descricao || '';
+ document.getElementById('pImagem').value = p.imagem || '';
+ document.getElementById('pDestaque').value = p.destaque ? 'true' : 'false';
+ document.getElementById('btnSalvarProduto').textContent = 'Atualizar Produto';
+ document.getElementById('tabProdutos').scrollIntoView();
+}
+
+function cancelarEdicao() {
+ document.getElementById('editId').value = '';
+ document.getElementById('formProduto').reset();
+ document.getElementById('btnSalvarProduto').textContent = 'Salvar Produto';
+}
+
+function salvarProduto(event) {
+ event.preventDefault();
+ const editId = document.getElementById('editId').value;
+ const dados = {
+  nome: document.getElementById('pNome').value,
+  marca: document.getElementById('pMarca').value,
+  preco: parseFloat(document.getElementById('pPreco').value),
+  categoria: document.getElementById('pCategoria').value,
+  descricao: document.getElementById('pDesc').value,
+  imagem: document.getElementById('pImagem').value || 'perfume_png_01.png',
+  destaque: document.getElementById('pDestaque').value === 'true'
+ };
+
+ const method = editId ? 'PUT' : 'POST';
+ const url = editId ? `/api/produto/${editId}` : '/api/produto';
+
+ fetch(url, {
+  method: method,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(dados)
+ }).then(r => r.json()).then(resp => {
+  if (resp.status === 'ok') {
+   mostrarMsg(editId ? 'Produto atualizado!' : 'Produto adicionado!', 'ok');
+   cancelarEdicao();
+   carregarProdutos();
+  } else {
+   mostrarMsg('Erro: ' + (resp.mensagem || 'desconhecido'), 'erro');
+  }
+ });
+}
+
+function excluirProduto(id) {
+ if (!confirm('Excluir produto?')) return;
+ fetch('/api/produto/' + id, { method: 'DELETE' })
+  .then(r => r.json()).then(() => {
+   carregarProdutos();
+   mostrarMsg('Produto excluído', 'ok');
+  });
+}
+
+// === STATS ===
+function atualizarStats() {
+ document.getElementById('statPedidos').textContent = pedidosData.length;
+ const receita = pedidosData.reduce((s, p) => s + (p.total || 0), 0);
+ document.getElementById('statReceita').textContent = 'R$ ' + receita.toFixed(2);
+}
+
+function atualizarResumo() {
+ const total = pedidosData.length;
+ const recebidos = pedidosData.filter(p => p.status === 'recebido').length;
+ const enviados = pedidosData.filter(p => p.status === 'enviado').length;
+ const entregues = pedidosData.filter(p => p.status === 'entregue').length;
+ const receita = pedidosData.reduce((s, p) => s + (p.total || 0), 0);
+ document.getElementById('cfgResumo').innerHTML =
+  `<p>📦 Total de pedidos: <strong>${total}</strong></p>
+   <p>🕐 Aguardando: <strong>${recebidos}</strong> | Em transporte: <strong>${enviados}</strong> | Entregues: <strong>${entregues}</strong></p>
+   <p>💰 Receita total: <strong>R$ ${receita.toFixed(2)}</strong></p>`;
+}
+
+// === CONFIG ===
+function salvarConfig() {
+ const cfg = {
+  nome: document.getElementById('cfgNome').value,
+  whatsapp: document.getElementById('cfgWhats').value,
+  pix: document.getElementById('cfgPix').value,
+  promocao: document.getElementById('cfgPromo').value
+ };
+ fetch('/api/config', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(cfg)
+ }).then(r => r.json()).then(() => {
+  mostrarMsg('Configurações salvas!', 'ok');
+ });
+}
+
+// === MSG ===
+function mostrarMsg(texto, tipo) {
+ const el = document.getElementById('msg');
+ el.textContent = texto;
+ el.className = 'msg msg-' + tipo;
+ setTimeout(() => el.className = 'msg', 3000);
+}
+
+function toggleCart(el) { /* apenas no admin */ }
+
+// === INIT ===
+document.addEventListener('DOMContentLoaded', () => {
+ carregarPedidos();
+ carregarProdutos();
+});
+</script>
+</body>
+</html>

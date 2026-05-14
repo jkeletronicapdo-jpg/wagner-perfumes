@@ -1,0 +1,21 @@
+{
+    "projeto": "Wagner Perfumes",
+    "cliente": "Adriana Wagner",
+    "versao": "1.0.0",
+    "descricao": "Webpage de vendas de perfumes - design minimalista dourado",
+    "estrutura": {
+        "frontend": "HTML5 + CSS3 + Vanilla JS",
+        "backend": "Flask (Python 3.11+)",
+        "dados": "JSON local",
+        "acesso_remoto": "ZeroTier"
+    },
+    "modulos": {
+        "perfumes": "Ativo",
+        "roupas": "Previsto (fase 2)"
+    },
+    "config": {
+        "host": "0.0.0.0",
+        "porta": 5000,
+        "debug": false
+    }
+}

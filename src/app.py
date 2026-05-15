@@ -1,7 +1,7 @@
 """
 Wagner Perfumes — Servidor Flask
 Landing page promocional + Checkout + Painel Admin
-Banco de dados: Excel (.xlsx) — abas: categorias, marcas, produtos
+Banco de dados: SQLite
 JC Infocell | Agente Desenvolvedor
 """
 
@@ -9,13 +9,12 @@ import json
 import os
 import io
 import base64
-import copy
+import sqlite3
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
-import openpyxl
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-XLSX_PATH = os.path.join(BASE_DIR, 'dados.xlsx')
+DB_PATH = os.path.join(BASE_DIR, 'database.sqlite')
 PEDIDOS_DIR = os.path.join(BASE_DIR, 'pedidos')
 CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
 
@@ -28,85 +27,107 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 
-# ==================== LEITURA / ESCRITA XLSX ====================
+# ==================== BANCO SQLITE ====================
 
-def _linhas(wb, aba):
-    """Retorna lista de dicts de uma aba."""
-    ws = wb[aba]
-    headers = [c.value for c in ws[1]]
-    rows = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if row[0] is None:
-            continue
-        rows.append({headers[i]: row[i] for i in range(len(headers))})
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
+
+def db_query(sql, params=()):
+    conn = get_db()
+    cur = conn.execute(sql, params)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
     return rows
 
 
+def db_exec(sql, params=()):
+    conn = get_db()
+    conn.execute(sql, params)
+    conn.commit()
+    conn.close()
+
+
+def db_exec_many(sql, params_list):
+    conn = get_db()
+    conn.executemany(sql, params_list)
+    conn.commit()
+    conn.close()
+
+
+# ==================== INICIALIZACAO DO BANCO ====================
+
+def init_db():
+    conn = get_db()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS categorias (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            imagem TEXT DEFAULT 'cat_masculino.jpg'
+        );
+        CREATE TABLE IF NOT EXISTS marcas (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS produtos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            marca TEXT REFERENCES marcas(id),
+            categoria TEXT REFERENCES categorias(id),
+            preco REAL NOT NULL DEFAULT 0,
+            descricao TEXT DEFAULT '',
+            imagem TEXT DEFAULT 'perfume_png_01.png',
+            destaque INTEGER DEFAULT 0,
+            estoque INTEGER DEFAULT 0
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# ==================== LEITURA / ESCRITA ====================
+
 def carregar_categorias():
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    dados = _linhas(wb, 'categorias')
-    wb.close()
-    for c in dados:
-        if c.get('imagem') is None:
-            c['imagem'] = 'cat_masculino.jpg'
-    return dados
+    return db_query("SELECT * FROM categorias ORDER BY nome")
 
 
 def carregar_marcas():
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    dados = _linhas(wb, 'marcas')
-    wb.close()
-    return dados
+    return db_query("SELECT * FROM marcas ORDER BY nome")
 
 
 def carregar_produtos():
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    dados = _linhas(wb, 'produtos')
-    wb.close()
-    for p in dados:
-        p['destaque'] = p.get('destaque', 'nao') == 'sim'
-    return dados
+    rows = db_query("SELECT * FROM produtos ORDER BY id")
+    for p in rows:
+        p['destaque'] = bool(p['destaque'])
+    return rows
 
 
 def salvar_categorias(categorias):
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    ws = wb['categorias']
-    ws.delete_rows(2, ws.max_row)
-    for c in categorias:
-        ws.append([c['id'], c['nome']])
-    wb.save(XLSX_PATH)
-    wb.close()
+    db_exec("DELETE FROM categorias")
+    db_exec_many("INSERT INTO categorias (id, nome) VALUES (?, ?)",
+                 [(c['id'], c['nome']) for c in categorias])
 
 
 def salvar_marcas(marcas):
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    ws = wb['marcas']
-    ws.delete_rows(2, ws.max_row)
-    for m in marcas:
-        ws.append([m['id'], m['nome']])
-    wb.save(XLSX_PATH)
-    wb.close()
+    db_exec("DELETE FROM marcas")
+    db_exec_many("INSERT INTO marcas (id, nome) VALUES (?, ?)",
+                 [(m['id'], m['nome']) for m in marcas])
 
 
 def salvar_produtos(produtos):
-    wb = openpyxl.load_workbook(XLSX_PATH)
-    ws = wb['produtos']
-    ws.delete_rows(2, ws.max_row)
+    db_exec("DELETE FROM produtos")
     for p in produtos:
-        destaque_str = 'sim' if p.get('destaque') else 'nao'
-        ws.append([
-            p.get('id', 1),
-            p.get('nome', ''),
-            p.get('marca', ''),
-            p.get('categoria', ''),
-            p.get('preco', 0),
-            p.get('descricao', ''),
-            p.get('imagem', ''),
-            destaque_str,
-            p.get('estoque', 0)
-        ])
-    wb.save(XLSX_PATH)
-    wb.close()
+        db_exec(
+            "INSERT INTO produtos (id, nome, marca, categoria, preco, descricao, imagem, destaque, estoque) VALUES (?,?,?,?,?,?,?,?,?)",
+            (p['id'], p['nome'], p.get('marca', ''), p.get('categoria', ''),
+             p.get('preco', 0), p.get('descricao', ''), p.get('imagem', 'perfume_png_01.png'),
+             1 if p.get('destaque') else 0, int(p.get('estoque', 0))))
 
 
 def get_categoria_nome(cat_id, categorias):
@@ -152,13 +173,12 @@ def api_listar_categorias():
 @app.route('/api/categoria', methods=['POST'])
 def api_criar_categoria():
     try:
-        dados = carregar_categorias()
         nova = request.get_json()
         novo_id = nova.get('id', nova['nome'].strip().lower().replace(' ', '_'))
-        if any(c['id'] == novo_id for c in dados):
+        existente = db_query("SELECT id FROM categorias WHERE id = ?", (novo_id,))
+        if existente:
             return jsonify({'status': 'erro', 'mensagem': 'Categoria já existe'}), 400
-        dados.append({'id': novo_id, 'nome': nova['nome']})
-        salvar_categorias(dados)
+        db_exec("INSERT INTO categorias (id, nome) VALUES (?, ?)", (novo_id, nova['nome']))
         print(f"  [ADMIN] Categoria criada: {nova['nome']} (id={novo_id})")
         return jsonify({'status': 'ok', 'id': novo_id})
     except Exception as e:
@@ -168,18 +188,13 @@ def api_criar_categoria():
 @app.route('/api/categoria/<cat_id>', methods=['PUT'])
 def api_atualizar_categoria(cat_id):
     try:
-        dados = carregar_categorias()
         alt = request.get_json()
-        for c in dados:
-            if c['id'] == cat_id:
-                if 'nome' in alt:
-                    c['nome'] = alt['nome']
-                if 'id' in alt:
-                    c['id'] = alt['id']
-                salvar_categorias(dados)
-                print(f"  [ADMIN] Categoria atualizada: {cat_id}")
-                return jsonify({'status': 'ok'})
-        return jsonify({'erro': 'Nao encontrada'}), 404
+        if 'nome' in alt:
+            db_exec("UPDATE categorias SET nome = ? WHERE id = ?", (alt['nome'], cat_id))
+        if 'id' in alt:
+            db_exec("UPDATE categorias SET id = ? WHERE id = ?", (alt['id'], cat_id))
+        print(f"  [ADMIN] Categoria atualizada: {cat_id}")
+        return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
@@ -187,9 +202,7 @@ def api_atualizar_categoria(cat_id):
 @app.route('/api/categoria/<cat_id>', methods=['DELETE'])
 def api_deletar_categoria(cat_id):
     try:
-        dados = carregar_categorias()
-        dados = [c for c in dados if c['id'] != cat_id]
-        salvar_categorias(dados)
+        db_exec("DELETE FROM categorias WHERE id = ?", (cat_id,))
         print(f"  [ADMIN] Categoria deletada: {cat_id}")
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -206,13 +219,12 @@ def api_listar_marcas():
 @app.route('/api/marca', methods=['POST'])
 def api_criar_marca():
     try:
-        dados = carregar_marcas()
         nova = request.get_json()
         novo_id = nova.get('id', nova['nome'].strip().lower().replace(' ', '_'))
-        if any(m['id'] == novo_id for m in dados):
+        existente = db_query("SELECT id FROM marcas WHERE id = ?", (novo_id,))
+        if existente:
             return jsonify({'status': 'erro', 'mensagem': 'Marca já existe'}), 400
-        dados.append({'id': novo_id, 'nome': nova['nome']})
-        salvar_marcas(dados)
+        db_exec("INSERT INTO marcas (id, nome) VALUES (?, ?)", (novo_id, nova['nome']))
         print(f"  [ADMIN] Marca criada: {nova['nome']} (id={novo_id})")
         return jsonify({'status': 'ok', 'id': novo_id})
     except Exception as e:
@@ -222,18 +234,13 @@ def api_criar_marca():
 @app.route('/api/marca/<marca_id>', methods=['PUT'])
 def api_atualizar_marca(marca_id):
     try:
-        dados = carregar_marcas()
         alt = request.get_json()
-        for m in dados:
-            if m['id'] == marca_id:
-                if 'nome' in alt:
-                    m['nome'] = alt['nome']
-                if 'id' in alt:
-                    m['id'] = alt['id']
-                salvar_marcas(dados)
-                print(f"  [ADMIN] Marca atualizada: {marca_id}")
-                return jsonify({'status': 'ok'})
-        return jsonify({'erro': 'Nao encontrada'}), 404
+        if 'nome' in alt:
+            db_exec("UPDATE marcas SET nome = ? WHERE id = ?", (alt['nome'], marca_id))
+        if 'id' in alt:
+            db_exec("UPDATE marcas SET id = ? WHERE id = ?", (alt['id'], marca_id))
+        print(f"  [ADMIN] Marca atualizada: {marca_id}")
+        return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
@@ -241,9 +248,7 @@ def api_atualizar_marca(marca_id):
 @app.route('/api/marca/<marca_id>', methods=['DELETE'])
 def api_deletar_marca(marca_id):
     try:
-        dados = carregar_marcas()
-        dados = [m for m in dados if m['id'] != marca_id]
-        salvar_marcas(dados)
+        db_exec("DELETE FROM marcas WHERE id = ?", (marca_id,))
         print(f"  [ADMIN] Marca deletada: {marca_id}")
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -262,7 +267,6 @@ def api_upload_imagem():
         if not imagem_b64 or not nome_arquivo:
             return jsonify({'status': 'erro', 'mensagem': 'Dados incompletos'}), 400
 
-        # Remove prefixo data:image/... se vier
         if ',' in imagem_b64:
             imagem_b64 = imagem_b64.split(',')[1]
 
@@ -284,24 +288,23 @@ def api_upload_imagem():
 
 @app.route('/api/produto/<int:produto_id>', methods=['GET'])
 def api_get_produto(produto_id):
-    produtos = carregar_produtos()
-    for p in produtos:
-        if p['id'] == produto_id:
-            return jsonify(p)
+    p = db_query("SELECT * FROM produtos WHERE id = ?", (produto_id,))
+    if p:
+        p[0]['destaque'] = bool(p[0]['destaque'])
+        return jsonify(p[0])
     return jsonify({'erro': 'Produto nao encontrado'}), 404
 
 
 @app.route('/api/produto', methods=['POST'])
 def api_criar_produto():
     try:
-        produtos = carregar_produtos()
         novo = request.get_json()
-        novo_id = max(p['id'] for p in produtos) + 1 if produtos else 1
-        novo['id'] = novo_id
-        novo['estoque'] = int(novo.get('estoque', 0))
-        novo['destaque'] = novo.get('destaque', False)
-        produtos.append(novo)
-        salvar_produtos(produtos)
+        novo_id = db_query("SELECT COALESCE(MAX(id),0)+1 AS prox FROM produtos")[0]['prox']
+        db_exec(
+            "INSERT INTO produtos (id, nome, marca, categoria, preco, descricao, imagem, destaque, estoque) VALUES (?,?,?,?,?,?,?,?,?)",
+            (novo_id, novo['nome'], novo.get('marca', ''), novo.get('categoria', ''),
+             novo.get('preco', 0), novo.get('descricao', ''), novo.get('imagem', 'perfume_png_01.png'),
+             1 if novo.get('destaque') else 0, int(novo.get('estoque', 0))))
         print(f"  [ADMIN] Produto criado: {novo['nome']} (id={novo_id})")
         return jsonify({'status': 'ok', 'id': novo_id})
     except Exception as e:
@@ -311,19 +314,24 @@ def api_criar_produto():
 @app.route('/api/produto/<int:produto_id>', methods=['PUT'])
 def api_atualizar_produto(produto_id):
     try:
-        produtos = carregar_produtos()
         alt = request.get_json()
-        for p in produtos:
-            if p['id'] == produto_id:
-                for k, v in alt.items():
-                    if k != 'id':
-                        p[k] = v
-                if 'estoque' in alt:
-                    p['estoque'] = int(alt['estoque'])
-                salvar_produtos(produtos)
-                print(f"  [ADMIN] Produto atualizado: {p['nome']} (id={produto_id})")
-                return jsonify({'status': 'ok'})
-        return jsonify({'erro': 'Nao encontrado'}), 404
+        campos = []
+        valores = []
+        for k in ('nome', 'marca', 'categoria', 'preco', 'descricao', 'imagem'):
+            if k in alt:
+                campos.append(f"{k} = ?")
+                valores.append(alt[k])
+        if 'estoque' in alt:
+            campos.append("estoque = ?")
+            valores.append(int(alt['estoque']))
+        if 'destaque' in alt:
+            campos.append("destaque = ?")
+            valores.append(1 if alt['destaque'] else 0)
+        if campos:
+            valores.append(produto_id)
+            db_exec(f"UPDATE produtos SET {', '.join(campos)} WHERE id = ?", valores)
+            print(f"  [ADMIN] Produto atualizado: id={produto_id}")
+        return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
@@ -331,9 +339,7 @@ def api_atualizar_produto(produto_id):
 @app.route('/api/produto/<int:produto_id>', methods=['DELETE'])
 def api_deletar_produto(produto_id):
     try:
-        produtos = carregar_produtos()
-        produtos = [p for p in produtos if p['id'] != produto_id]
-        salvar_produtos(produtos)
+        db_exec("DELETE FROM produtos WHERE id = ?", (produto_id,))
         print(f"  [ADMIN] Produto deletado: id={produto_id}")
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -365,8 +371,8 @@ def api_criar_pedido():
         for item in pedido.get('itens', []):
             for p in produtos:
                 if p['id'] == item['id']:
-                    p['estoque'] = max(0, int(p.get('estoque', 0)) - item['qty'])
-        salvar_produtos(produtos)
+                    novo_estq = max(0, int(p.get('estoque', 0)) - item['qty'])
+                    db_exec("UPDATE produtos SET estoque = ? WHERE id = ?", (novo_estq, p['id']))
 
         total = sum(item['preco'] * item['qty'] for item in pedido.get('itens', []))
         print(f"\n=== NOVO PEDIDO: {pedido_id} ===")
@@ -478,7 +484,7 @@ if __name__ == '__main__':
 
     print("=" * 50)
     print("  WAGNER PERFUMES — Servidor Web + Admin")
-    print("  Banco: Excel (.xlsx)")
+    print("  Banco: SQLite")
     print("=" * 50)
 
     hostname = socket.gethostname()

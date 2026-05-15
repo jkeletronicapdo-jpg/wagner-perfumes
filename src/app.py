@@ -250,6 +250,36 @@ def api_deletar_marca(marca_id):
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
 
+# ==================== UPLOAD IMAGEM ====================
+
+@app.route('/api/upload-imagem', methods=['POST'])
+def api_upload_imagem():
+    try:
+        data = request.get_json()
+        imagem_b64 = data.get('imagem', '')
+        nome_arquivo = data.get('nome', '')
+
+        if not imagem_b64 or not nome_arquivo:
+            return jsonify({'status': 'erro', 'mensagem': 'Dados incompletos'}), 400
+
+        # Remove prefixo data:image/... se vier
+        if ',' in imagem_b64:
+            imagem_b64 = imagem_b64.split(',')[1]
+
+        img_data = base64.b64decode(imagem_b64)
+        assets_dir = os.path.join(BASE_DIR, '..', 'assets')
+        destino = os.path.join(assets_dir, 'img', 'produtos', nome_arquivo)
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+
+        with open(destino, 'wb') as f:
+            f.write(img_data)
+
+        print(f"  [UPLOAD] Imagem salva: {nome_arquivo}")
+        return jsonify({'status': 'ok', 'arquivo': nome_arquivo, 'url': f'/static/img/produtos/{nome_arquivo}'})
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
 # ==================== API PRODUTOS ====================
 
 @app.route('/api/produto/<int:produto_id>', methods=['GET'])

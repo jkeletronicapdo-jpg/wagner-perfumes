@@ -210,8 +210,20 @@
     </div>
     <div class="full"><label>Descrição</label><textarea id="pDesc" rows="2"></textarea></div>
     <div class="full">
-     <label>Imagem (nome do arquivo em assets/img/produtos/)</label>
-     <input type="text" id="pImagem" placeholder="ex: perfume_png_01.png">
+     <label>Imagem</label>
+     <div style="display:flex;gap:10px;align-items:center;">
+      <input type="text" id="pImagem" placeholder="ex: perfume_png_01.png" style="flex:1;">
+      <button type="button" class="btn btn-edit" onclick="abrirSeletorImagem()">📁 Selecionar</button>
+     </div>
+     <div id="imgPasteArea" tabindex="0" style="margin-top:8px;border:2px dashed #ddd;border-radius:8px;padding:20px;text-align:center;cursor:pointer;background:#faf5f0;transition:.2s;outline:none;"
+          onpaste="colarImagem(event)" onclick="this.focus()">
+      📋 <strong>Cole a imagem aqui</strong> (Ctrl+V) ou arraste
+      <br><small style="color:#888;">Cole uma imagem copiada de outro site ou do computador</small>
+      <div id="imgPreview" style="margin-top:10px;display:none;">
+       <img id="imgPreviewSrc" style="max-height:120px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+      </div>
+     </div>
+     <input type="file" id="pImagemFile" accept="image/*" style="display:none" onchange="uploadArquivo(event)">
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
      <button type="submit" class="btn btn-primary" id="btnSalvarProduto">Salvar Produto</button>
@@ -659,6 +671,96 @@ function salvarConfig() {
  }).then(r => r.json()).then(() => {
   mostrarMsg('Configurações salvas!', 'ok');
  });
+}
+
+// === IMAGEM: COLAGEM ===
+let imagemPasteBase64 = null;
+
+function colarImagem(event) {
+ const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;
+ if (!items) return;
+
+ for (const item of items) {
+  if (item.type.startsWith('image/')) {
+   event.preventDefault();
+   const blob = item.getAsFile();
+   const reader = new FileReader();
+   reader.onload = function(e) {
+    const base64 = e.target.result;
+    imagemPasteBase64 = base64;
+    
+    // Preview
+    const preview = document.getElementById('imgPreview');
+    const previewSrc = document.getElementById('imgPreviewSrc');
+    previewSrc.src = base64;
+    preview.style.display = 'block';
+    
+    // Enviar pro servidor
+    const nomeArquivo = 'colada_' + Date.now() + '.png';
+    document.getElementById('pImagem').value = nomeArquivo;
+    document.getElementById('imgPasteArea').style.borderColor = '#b94f5f';
+    document.getElementById('imgPasteArea').style.background = '#fce8e8';
+    
+    fetch('/api/upload-imagem', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ imagem: base64, nome: nomeArquivo })
+    }).then(r => r.json()).then(resp => {
+     if (resp.status === 'ok') {
+      mostrarMsg('Imagem salva: ' + nomeArquivo, 'ok');
+      document.getElementById('imgPasteArea').style.borderColor = '#4caf50';
+      document.getElementById('imgPasteArea').style.background = '#e8f5e9';
+      setTimeout(() => {
+       document.getElementById('imgPasteArea').style.borderColor = '#ddd';
+       document.getElementById('imgPasteArea').style.background = '#faf5f0';
+      }, 2000);
+     }
+    });
+   };
+   reader.readAsDataURL(blob);
+   break;
+  }
+ }
+}
+
+function abrirSeletorImagem() {
+ document.getElementById('pImagemFile').click();
+}
+
+function uploadArquivo(event) {
+ const file = event.target.files[0];
+ if (!file) return;
+ const reader = new FileReader();
+ reader.onload = function(e) {
+  imagemPasteBase64 = e.target.result;
+  const preview = document.getElementById('imgPreview');
+  const previewSrc = document.getElementById('imgPreviewSrc');
+  previewSrc.src = e.target.result;
+  preview.style.display = 'block';
+
+  const ext = file.name.split('.').pop() || 'png';
+  const nomeArquivo = 'upload_' + Date.now() + '.' + ext;
+  document.getElementById('pImagem').value = nomeArquivo;
+  document.getElementById('imgPasteArea').style.borderColor = '#b94f5f';
+  document.getElementById('imgPasteArea').style.background = '#fce8e8';
+
+  fetch('/api/upload-imagem', {
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ imagem: e.target.result, nome: nomeArquivo })
+  }).then(r => r.json()).then(resp => {
+   if (resp.status === 'ok') {
+    mostrarMsg('Imagem salva: ' + nomeArquivo, 'ok');
+    document.getElementById('imgPasteArea').style.borderColor = '#4caf50';
+    document.getElementById('imgPasteArea').style.background = '#e8f5e9';
+    setTimeout(() => {
+     document.getElementById('imgPasteArea').style.borderColor = '#ddd';
+     document.getElementById('imgPasteArea').style.background = '#faf5f0';
+    }, 2000);
+   }
+  });
+ };
+ reader.readAsDataURL(file);
 }
 
 // === INIT ===

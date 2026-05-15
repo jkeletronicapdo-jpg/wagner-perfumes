@@ -23,7 +23,7 @@
 
  <div class="perfume-strip">
  {% for p in produtos[:6] %}
- <img src="{{ url_for('static', filename='img/produtos/perfume_png_0' + loop.index|string + '.png') }}" alt="{{ p.nome }}" loading="lazy">
+ <img src="{{ url_for('static', filename='img/produtos/' + p.imagem) }}" alt="{{ p.nome }}" loading="lazy">
  {% endfor %}
  </div>
 
@@ -38,11 +38,18 @@
  <div class="product-grid">
  {% for p in produtos %}
  <article class="product-card">
- <img src="{{ url_for('static', filename='img/produtos/perfume_png_0' + loop.index|string + '.png') }}" alt="{{ p.nome }}" loading="lazy">
+ <img src="{{ url_for('static', filename='img/produtos/' + p.imagem) }}" alt="{{ p.nome }}" loading="lazy">
  <h3>{{ p.nome }}</h3>
- <small>{{ p.marca if p.marca else p.categoria_nome }}</small>
+ <small>{{ p.marca_nome if p.marca_nome else p.categoria_nome }}</small>
  <div class="price">R$ {{ "%.2f"|format(p.preco) }}</div>
- <button class="buy" onclick="adicionarAoCarrinho({{ p.id }})">COMPRAR</button>
+ {% if p.estoque and p.estoque > 0 %}
+  <button class="buy" onclick="adicionarAoCarrinho({{ p.id }})">COMPRAR</button>
+  {% if p.estoque <= 3 %}
+   <div style="font-size:11px;color:#e74c3c;margin-top:4px;">⚠️ Apenas {{ p.estoque }} und.</div>
+  {% endif %}
+ {% else %}
+  <button class="buy" style="background:#ccc;cursor:not-allowed;" disabled>ESGOTADO</button>
+ {% endif %}
  </article>
  {% endfor %}
  </div>

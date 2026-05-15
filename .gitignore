@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+logs/
+*.bak_*
+iniciar_*.bat
+parar_servidor.bat
+tunnel_*.bat
+start_*.ps1
+stop_*.ps1

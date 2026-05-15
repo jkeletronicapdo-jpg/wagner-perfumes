@@ -1,6 +1,7 @@
 """
 Wagner Perfumes — Servidor Flask
 Landing page promocional + Checkout + Painel Admin
+Banco de dados: Excel (.xlsx) — abas: categorias, marcas, produtos
 JC Infocell | Agente Desenvolvedor
 """
 
@@ -11,26 +12,102 @@ import base64
 import copy
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
+import openpyxl
 
-ASSETS_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+XLSX_PATH = os.path.join(BASE_DIR, 'dados.xlsx')
+PEDIDOS_DIR = os.path.join(BASE_DIR, 'pedidos')
+CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
 
-app = Flask(__name__, 
+app = Flask(__name__,
             static_folder=os.path.join(os.path.dirname(__file__), '..', 'assets'),
             static_url_path='/static',
             template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PRODUTOS_PATH = os.path.join(BASE_DIR, 'produtos.json')
-PEDIDOS_DIR = os.path.join(BASE_DIR, 'pedidos')
-CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-def carregar_dados():
-    with open(PRODUTOS_PATH, 'r', encoding='utf-8') as f:
-        return json.load(f)
 
-def salvar_dados(dados):
-    with open(PRODUTOS_PATH, 'w', encoding='utf-8') as f:
-        json.dump(dados, f, indent=4, ensure_ascii=False)
+# ==================== LEITURA / ESCRITA XLSX ====================
+
+def _linhas(wb, aba):
+    """Retorna lista de dicts de uma aba."""
+    ws = wb[aba]
+    headers = [c.value for c in ws[1]]
+    rows = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[0] is None:
+            continue
+        rows.append({headers[i]: row[i] for i in range(len(headers))})
+    return rows
+
+
+def carregar_categorias():
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    dados = _linhas(wb, 'categorias')
+    wb.close()
+    for c in dados:
+        if c.get('imagem') is None:
+            c['imagem'] = 'cat_masculino.jpg'
+    return dados
+
+
+def carregar_marcas():
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    dados = _linhas(wb, 'marcas')
+    wb.close()
+    return dados
+
+
+def carregar_produtos():
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    dados = _linhas(wb, 'produtos')
+    wb.close()
+    for p in dados:
+        p['destaque'] = p.get('destaque', 'nao') == 'sim'
+    return dados
+
+
+def salvar_categorias(categorias):
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    ws = wb['categorias']
+    ws.delete_rows(2, ws.max_row)
+    for c in categorias:
+        ws.append([c['id'], c['nome']])
+    wb.save(XLSX_PATH)
+    wb.close()
+
+
+def salvar_marcas(marcas):
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    ws = wb['marcas']
+    ws.delete_rows(2, ws.max_row)
+    for m in marcas:
+        ws.append([m['id'], m['nome']])
+    wb.save(XLSX_PATH)
+    wb.close()
+
+
+def salvar_produtos(produtos):
+    wb = openpyxl.load_workbook(XLSX_PATH)
+    ws = wb['produtos']
+    ws.delete_rows(2, ws.max_row)
+    for p in produtos:
+        destaque_str = 'sim' if p.get('destaque') else 'nao'
+        ws.append([
+            p.get('id', 1),
+            p.get('nome', ''),
+            p.get('marca', ''),
+            p.get('categoria', ''),
+            p.get('preco', 0),
+            p.get('descricao', ''),
+            p.get('imagem', ''),
+            destaque_str,
+            p.get('estoque', 0)
+        ])
+    wb.save(XLSX_PATH)
+    wb.close()
+
 
 def get_categoria_nome(cat_id, categorias):
     for c in categorias:
@@ -38,82 +115,205 @@ def get_categoria_nome(cat_id, categorias):
             return c['nome']
     return cat_id
 
+
 # ==================== ROTAS PUBLICAS ====================
 
 @app.route('/')
 def home():
-    dados = carregar_dados()
-    categorias = dados['categorias']
-    produtos = dados['produtos']
+    categorias = carregar_categorias()
+    marcas = carregar_marcas()
+    produtos = carregar_produtos()
     for cat in categorias:
         cat['count'] = len([p for p in produtos if p['categoria'] == cat['id']])
+    marcas_dict = {m['id']: m['nome'] for m in marcas}
     for p in produtos:
         p['categoria_nome'] = get_categoria_nome(p['categoria'], categorias)
+        p['marca_nome'] = marcas_dict.get(p.get('marca', ''), p.get('marca', ''))
     return render_template('index.html', categorias=categorias, produtos=produtos)
+
 
 @app.route('/checkout')
 def checkout():
     return render_template('checkout.html')
 
+
 @app.route('/admin')
 def admin():
     return render_template('admin.html')
+
+
+# ==================== API CATEGORIAS ====================
+
+@app.route('/api/categorias', methods=['GET'])
+def api_listar_categorias():
+    return jsonify(carregar_categorias())
+
+
+@app.route('/api/categoria', methods=['POST'])
+def api_criar_categoria():
+    try:
+        dados = carregar_categorias()
+        nova = request.get_json()
+        novo_id = nova.get('id', nova['nome'].strip().lower().replace(' ', '_'))
+        if any(c['id'] == novo_id for c in dados):
+            return jsonify({'status': 'erro', 'mensagem': 'Categoria já existe'}), 400
+        dados.append({'id': novo_id, 'nome': nova['nome']})
+        salvar_categorias(dados)
+        print(f"  [ADMIN] Categoria criada: {nova['nome']} (id={novo_id})")
+        return jsonify({'status': 'ok', 'id': novo_id})
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
+@app.route('/api/categoria/<cat_id>', methods=['PUT'])
+def api_atualizar_categoria(cat_id):
+    try:
+        dados = carregar_categorias()
+        alt = request.get_json()
+        for c in dados:
+            if c['id'] == cat_id:
+                if 'nome' in alt:
+                    c['nome'] = alt['nome']
+                if 'id' in alt:
+                    c['id'] = alt['id']
+                salvar_categorias(dados)
+                print(f"  [ADMIN] Categoria atualizada: {cat_id}")
+                return jsonify({'status': 'ok'})
+        return jsonify({'erro': 'Nao encontrada'}), 404
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
+@app.route('/api/categoria/<cat_id>', methods=['DELETE'])
+def api_deletar_categoria(cat_id):
+    try:
+        dados = carregar_categorias()
+        dados = [c for c in dados if c['id'] != cat_id]
+        salvar_categorias(dados)
+        print(f"  [ADMIN] Categoria deletada: {cat_id}")
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
+# ==================== API MARCAS ====================
+
+@app.route('/api/marcas', methods=['GET'])
+def api_listar_marcas():
+    return jsonify(carregar_marcas())
+
+
+@app.route('/api/marca', methods=['POST'])
+def api_criar_marca():
+    try:
+        dados = carregar_marcas()
+        nova = request.get_json()
+        novo_id = nova.get('id', nova['nome'].strip().lower().replace(' ', '_'))
+        if any(m['id'] == novo_id for m in dados):
+            return jsonify({'status': 'erro', 'mensagem': 'Marca já existe'}), 400
+        dados.append({'id': novo_id, 'nome': nova['nome']})
+        salvar_marcas(dados)
+        print(f"  [ADMIN] Marca criada: {nova['nome']} (id={novo_id})")
+        return jsonify({'status': 'ok', 'id': novo_id})
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
+@app.route('/api/marca/<marca_id>', methods=['PUT'])
+def api_atualizar_marca(marca_id):
+    try:
+        dados = carregar_marcas()
+        alt = request.get_json()
+        for m in dados:
+            if m['id'] == marca_id:
+                if 'nome' in alt:
+                    m['nome'] = alt['nome']
+                if 'id' in alt:
+                    m['id'] = alt['id']
+                salvar_marcas(dados)
+                print(f"  [ADMIN] Marca atualizada: {marca_id}")
+                return jsonify({'status': 'ok'})
+        return jsonify({'erro': 'Nao encontrada'}), 404
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
+
+@app.route('/api/marca/<marca_id>', methods=['DELETE'])
+def api_deletar_marca(marca_id):
+    try:
+        dados = carregar_marcas()
+        dados = [m for m in dados if m['id'] != marca_id]
+        salvar_marcas(dados)
+        print(f"  [ADMIN] Marca deletada: {marca_id}")
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
 
 # ==================== API PRODUTOS ====================
 
 @app.route('/api/produto/<int:produto_id>', methods=['GET'])
 def api_get_produto(produto_id):
-    dados = carregar_dados()
-    for p in dados['produtos']:
+    produtos = carregar_produtos()
+    for p in produtos:
         if p['id'] == produto_id:
             return jsonify(p)
     return jsonify({'erro': 'Produto nao encontrado'}), 404
 
+
 @app.route('/api/produto', methods=['POST'])
 def api_criar_produto():
     try:
-        dados = carregar_dados()
+        produtos = carregar_produtos()
         novo = request.get_json()
-        novo_id = max(p['id'] for p in dados['produtos']) + 1 if dados['produtos'] else 1
+        novo_id = max(p['id'] for p in produtos) + 1 if produtos else 1
         novo['id'] = novo_id
+        novo['estoque'] = int(novo.get('estoque', 0))
         novo['destaque'] = novo.get('destaque', False)
-        dados['produtos'].append(novo)
-        salvar_dados(dados)
+        produtos.append(novo)
+        salvar_produtos(produtos)
         print(f"  [ADMIN] Produto criado: {novo['nome']} (id={novo_id})")
         return jsonify({'status': 'ok', 'id': novo_id})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 @app.route('/api/produto/<int:produto_id>', methods=['PUT'])
 def api_atualizar_produto(produto_id):
     try:
-        dados = carregar_dados()
-        alterado = request.get_json()
-        for p in dados['produtos']:
+        produtos = carregar_produtos()
+        alt = request.get_json()
+        for p in produtos:
             if p['id'] == produto_id:
-                p.update({k: v for k, v in alterado.items() if k != 'id'})
-                salvar_dados(dados)
+                for k, v in alt.items():
+                    if k != 'id':
+                        p[k] = v
+                if 'estoque' in alt:
+                    p['estoque'] = int(alt['estoque'])
+                salvar_produtos(produtos)
                 print(f"  [ADMIN] Produto atualizado: {p['nome']} (id={produto_id})")
                 return jsonify({'status': 'ok'})
         return jsonify({'erro': 'Nao encontrado'}), 404
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 @app.route('/api/produto/<int:produto_id>', methods=['DELETE'])
 def api_deletar_produto(produto_id):
     try:
-        dados = carregar_dados()
-        dados['produtos'] = [p for p in dados['produtos'] if p['id'] != produto_id]
-        salvar_dados(dados)
+        produtos = carregar_produtos()
+        produtos = [p for p in produtos if p['id'] != produto_id]
+        salvar_produtos(produtos)
         print(f"  [ADMIN] Produto deletado: id={produto_id}")
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 @app.route('/api/produtos')
 def api_listar_produtos():
-    dados = carregar_dados()
-    return jsonify(dados['produtos'])
+    return jsonify(carregar_produtos())
+
 
 # ==================== API PEDIDOS ====================
 
@@ -129,16 +329,24 @@ def api_criar_pedido():
         caminho = os.path.join(PEDIDOS_DIR, f'{pedido_id}.json')
         with open(caminho, 'w', encoding='utf-8') as f:
             json.dump(pedido, f, indent=2, ensure_ascii=False)
+
+        # Atualiza estoque
+        produtos = carregar_produtos()
+        for item in pedido.get('itens', []):
+            for p in produtos:
+                if p['id'] == item['id']:
+                    p['estoque'] = max(0, int(p.get('estoque', 0)) - item['qty'])
+        salvar_produtos(produtos)
+
         total = sum(item['preco'] * item['qty'] for item in pedido.get('itens', []))
         print(f"\n=== NOVO PEDIDO: {pedido_id} ===")
         print(f"Cliente: {pedido.get('nome')} | Tel: {pedido.get('telefone')}")
-        print(f"Endereco: {pedido.get('endereco')}, {pedido.get('cidade')}")
-        print(f"Pagamento: {pedido.get('pagamento')}")
-        print(f"Itens: {len(pedido.get('itens', []))} | Total: R$ {total:.2f}")
+        print(f"Total: R$ {total:.2f} | Itens: {len(pedido.get('itens', []))}")
         print("=" * 40)
         return jsonify({'status': 'ok', 'pedido_id': pedido_id, 'total': total})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
 
 @app.route('/api/pedidos')
 def api_listar_pedidos():
@@ -150,6 +358,7 @@ def api_listar_pedidos():
             with open(os.path.join(PEDIDOS_DIR, fname), 'r', encoding='utf-8') as f:
                 pedidos.append(json.load(f))
     return jsonify(pedidos)
+
 
 @app.route('/api/pedido/<pedido_id>/status', methods=['PUT'])
 def api_alterar_status(pedido_id):
@@ -169,6 +378,7 @@ def api_alterar_status(pedido_id):
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 @app.route('/api/pedido/<pedido_id>', methods=['DELETE'])
 def api_deletar_pedido(pedido_id):
     try:
@@ -179,6 +389,7 @@ def api_deletar_pedido(pedido_id):
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
+
 
 # ==================== API PIX ====================
 
@@ -205,6 +416,7 @@ def api_gerar_pix():
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 # ==================== API CONFIG ====================
 
 @app.route('/api/config', methods=['GET'])
@@ -212,6 +424,7 @@ def api_get_config():
     with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
     return jsonify(cfg)
+
 
 @app.route('/api/config', methods=['PUT'])
 def api_salvar_config():
@@ -227,15 +440,17 @@ def api_salvar_config():
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
+
 # ==================== INICIO ====================
 
 if __name__ == '__main__':
     import socket
-    
+
     print("=" * 50)
     print("  WAGNER PERFUMES — Servidor Web + Admin")
+    print("  Banco: Excel (.xlsx)")
     print("=" * 50)
-    
+
     hostname = socket.gethostname()
     ips = set()
     try:
@@ -245,18 +460,19 @@ if __name__ == '__main__':
                 ips.add(ip)
     except:
         pass
-    
+
     with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         config = json.load(f)
-    
-    porta = int(os.environ.get('PORT', config.get('porta', 5000)))
-    debug = config.get('debug', False)
-    
+
+    cfg = config.get('config', {})
+    porta = int(os.environ.get('PORT', cfg.get('porta', 5000)))
+    debug = cfg.get('debug', False)
+
     print(f"\n  Loja:      http://localhost:{porta}")
     print(f"  Admin:     http://localhost:{porta}/admin")
     for ip in sorted(ips):
         print(f"  Rede:      http://{ip}:{porta}")
     print(f"\n  Ctrl+C para parar")
     print("=" * 50)
-    
-    app.run(host=config.get('host', '0.0.0.0'), port=porta, debug=debug)
+
+    app.run(host=cfg.get('host', '0.0.0.0'), port=porta, debug=debug)

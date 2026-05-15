@@ -16,7 +16,6 @@
  background: #f5f0eb; color: var(--marrom);
  display: flex; min-height: 100vh;
  }
- /* Sidebar */
  .sidebar {
  width: 230px; background: var(--marrom); color: white;
  padding: 30px 20px; display: flex; flex-direction: column;
@@ -39,7 +38,6 @@
  margin-top: auto; color: rgba(255,255,255,.4);
  font-size: 13px;
  }
- /* Main */
  .main {
  margin-left: 230px; flex: 1; padding: 30px;
  }
@@ -61,7 +59,6 @@
  .stat-card .num { font-size: 24px; font-weight: 700; color: var(--rose-dark); }
  .stat-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
 
- /* Tabs */
  .tab-bar { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid #ddd; }
  .tab-bar button {
  background: none; border: none; padding: 12px 24px;
@@ -73,7 +70,6 @@
  .tab-content { display: none; }
  .tab-content.active { display: block; }
 
- /* Tabela */
  table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
  th { background: var(--marrom); color: white; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
  td { padding: 12px 16px; border-bottom: 1px solid #f0ebe6; font-size: 13px; vertical-align: middle; }
@@ -84,8 +80,7 @@
  .badge-enviado { background: #d4edda; color: #155724; }
  .badge-entregue { background: #cce5ff; color: #004085; }
 
- /* Form Produto */
- .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+ .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); max-width: 700px; }
  .form-grid .full { grid-column: span 2; }
  .form-grid label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; color: var(--marrom); }
  .form-grid input, .form-grid select, .form-grid textarea {
@@ -102,6 +97,12 @@
  .msg { padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
  .msg-ok { background: #d4edda; color: #155724; display: block; }
  .msg-erro { background: #f8d7da; color: #721c24; display: block; }
+ .inline-form { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+ .inline-form input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-family: "Poppins", sans-serif; font-size: 14px; outline: none; flex:1; }
+ .inline-form input:focus { border-color: var(--rose-dark); }
+ .section-title { font-family: "Playfair Display", serif; font-size: 20px; margin-bottom: 16px; color: var(--marrom); }
+ .empty-msg { text-align: center; padding: 40px; color: #888; }
+ .estoque-baixo { color: #e74c3c; font-weight: 600; }
  </style>
 </head>
 <body>
@@ -109,11 +110,13 @@
 <div class="sidebar">
  <h2>WAGNER<br>PERFUMES</h2>
  <a href="#" class="active" onclick="mudarAba('pedidos',this)">📦 Pedidos</a>
+ <a href="#" onclick="mudarAba('categorias',this)">🏷️ Categorias</a>
+ <a href="#" onclick="mudarAba('marcas',this)">🏢 Marcas</a>
  <a href="#" onclick="mudarAba('produtos',this)">🧴 Produtos</a>
  <a href="#" onclick="mudarAba('config',this)">⚙️ Config</a>
  <div style="flex:1"></div>
  <div style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:8px;">
-  Versão 1.0 — JC Infocell
+  Versão 2.0 — Excel + Subcadastros
  </div>
 </div>
 
@@ -129,7 +132,7 @@
 
  <div id="msg" class="msg"></div>
 
- <!-- ABA PEDIDOS -->
+ <!-- ========== ABA PEDIDOS ========== -->
  <div class="tab-content active" id="tabPedidos">
   <div class="tab-bar">
    <button class="active" onclick="filtrarPedidos('todos',this)">Todos</button>
@@ -143,37 +146,72 @@
    <tbody id="tabelaPedidos"></tbody>
   </table>
   </div>
-  <div id="semPedidos" style="text-align:center;padding:40px;color:#888;">Nenhum pedido encontrado.</div>
+  <div id="semPedidos" class="empty-msg">Nenhum pedido encontrado.</div>
  </div>
 
- <!-- ABA PRODUTOS -->
+ <!-- ========== ABA CATEGORIAS ========== -->
+ <div class="tab-content" id="tabCategorias">
+  <h3 class="section-title">🏷️ Gerenciar Categorias</h3>
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">As categorias aparecem como opções no cadastro de produtos.</p>
+
+  <div class="inline-form">
+   <input type="text" id="catNome" placeholder="Nova categoria...">
+   <button class="btn btn-primary" onclick="salvarCategoria()">Adicionar</button>
+  </div>
+
+  <table>
+   <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
+   <tbody id="tabelaCategorias"></tbody>
+  </table>
+  <div id="semCategorias" class="empty-msg">Nenhuma categoria cadastrada.</div>
+ </div>
+
+ <!-- ========== ABA MARCAS ========== -->
+ <div class="tab-content" id="tabMarcas">
+  <h3 class="section-title">🏢 Gerenciar Marcas</h3>
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">As marcas aparecem como opções no cadastro de produtos.</p>
+
+  <div class="inline-form">
+   <input type="text" id="marcaNome" placeholder="Nova marca...">
+   <button class="btn btn-primary" onclick="salvarMarca()">Adicionar</button>
+  </div>
+
+  <table>
+   <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
+   <tbody id="tabelaMarcas"></tbody>
+  </table>
+  <div id="semMarcas" class="empty-msg">Nenhuma marca cadastrada.</div>
+ </div>
+
+ <!-- ========== ABA PRODUTOS ========== -->
  <div class="tab-content" id="tabProdutos">
-  <h3 style="margin-bottom:16px;">Adicionar / Editar Produto</h3>
+  <h3 class="section-title">🧴 Adicionar / Editar Produto</h3>
   <form id="formProduto" onsubmit="return salvarProduto(event)" style="margin-bottom:30px;">
    <input type="hidden" id="editId" value="">
    <div class="form-grid">
     <div><label>Nome do perfume</label><input type="text" id="pNome" required></div>
-    <div><label>Marca</label><input type="text" id="pMarca"></div>
+    <div><label>Marca</label>
+     <select id="pMarca">
+      <option value="">-- Selecione --</option>
+     </select>
+    </div>
     <div><label>Preço (R$)</label><input type="number" id="pPreco" step="0.01" required></div>
     <div><label>Categoria</label>
      <select id="pCategoria">
-      <option value="masculino">Masculino</option>
-      <option value="feminino">Feminino</option>
-      <option value="unissex">Unissex</option>
-      <option value="nicho">Nicho / Premium</option>
+      <option value="">-- Selecione --</option>
+     </select>
+    </div>
+    <div><label>Estoque Atual</label><input type="number" id="pEstoque" min="0" value="0" required></div>
+    <div><label>Em destaque?</label>
+     <select id="pDestaque">
+      <option value="true">Sim</option>
+      <option value="false">Não</option>
      </select>
     </div>
     <div class="full"><label>Descrição</label><textarea id="pDesc" rows="2"></textarea></div>
     <div class="full">
      <label>Imagem (nome do arquivo em assets/img/produtos/)</label>
      <input type="text" id="pImagem" placeholder="ex: perfume_png_01.png">
-     <small style="color:#888;">As imagens disponíveis estão na pasta img/produtos/</small>
-    </div>
-    <div><label>Em destaque?</label>
-     <select id="pDestaque">
-      <option value="true">Sim</option>
-      <option value="false">Não</option>
-     </select>
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
      <button type="submit" class="btn btn-primary" id="btnSalvarProduto">Salvar Produto</button>
@@ -182,16 +220,16 @@
    </div>
   </form>
 
-  <h3 style="margin-bottom:12px;">Produtos Cadastrados</h3>
+  <h3 class="section-title">Produtos Cadastrados</h3>
   <div style="overflow-x:auto;">
   <table>
-   <thead><tr><th>#</th><th>Imagem</th><th>Nome</th><th>Marca</th><th>Preço</th><th>Categoria</th><th>Destaque</th><th>Ações</th></tr></thead>
+   <thead><tr><th>#</th><th>Nome</th><th>Marca</th><th>Preço</th><th>Categoria</th><th>Estoque</th><th>Destaque</th><th>Ações</th></tr></thead>
    <tbody id="tabelaProdutos"></tbody>
   </table>
   </div>
  </div>
 
- <!-- ABA CONFIG -->
+ <!-- ========== ABA CONFIG ========== -->
  <div class="tab-content" id="tabConfig">
   <h3 style="margin-bottom:16px;">Configurações da Loja</h3>
   <div class="form-grid" style="max-width:500px;">
@@ -218,111 +256,229 @@ function mudarAba(nome, el) {
  document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
  document.getElementById('tab' + nome.charAt(0).toUpperCase() + nome.slice(1)).classList.add('active');
  if (el) el.classList.add('active');
+ // Recarrega dados ao entrar na aba
+ if (nome === 'categorias') carregarCategorias();
+ if (nome === 'marcas') carregarMarcas();
+ if (nome === 'produtos') { carregarCategorias(); carregarMarcas(); carregarProdutos(); }
 }
 
-// === PEDIDOS ===
-let pedidosData = [];
-let filtroStatus = 'todos';
+// === MSG ===
+function mostrarMsg(texto, tipo) {
+ const el = document.getElementById('msg');
+ el.textContent = texto;
+ el.className = 'msg msg-' + tipo;
+ setTimeout(() => el.className = 'msg', 3000);
+}
 
-function carregarPedidos() {
- fetch('/api/pedidos')
+// ==================================================================
+// CATEGORIAS
+// ==================================================================
+let categoriasData = [];
+
+function carregarCategorias() {
+ fetch('/api/categorias')
   .then(r => r.json())
   .then(dados => {
-   pedidosData = dados;
-   renderizarPedidos();
+   categoriasData = dados;
+   renderizarCategorias();
+   preencherSelectCategoria();
+  });
+}
+
+function renderizarCategorias() {
+ const tbody = document.getElementById('tabelaCategorias');
+ const sem = document.getElementById('semCategorias');
+ if (categoriasData.length === 0) { tbody.innerHTML = ''; sem.style.display = 'block'; return; }
+ sem.style.display = 'none';
+ tbody.innerHTML = categoriasData.map(c => `<tr>
+  <td><code>${c.id}</code></td>
+  <td><strong>${c.nome}</strong></td>
+  <td>
+   <button class="btn btn-sm btn-edit" onclick="editarCategoria('${c.id}')">✏️ Editar</button>
+   <button class="btn btn-sm btn-delete" onclick="excluirCategoria('${c.id}')">🗑</button>
+  </td>
+ </tr>`).join('');
+}
+
+function salvarCategoria() {
+ const nome = document.getElementById('catNome').value.trim();
+ if (!nome) { mostrarMsg('Digite um nome para a categoria', 'erro'); return; }
+ const id = nome.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+ fetch('/api/categoria', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ id, nome })
+ }).then(r => r.json()).then(resp => {
+  if (resp.status === 'ok') {
+   mostrarMsg('Categoria adicionada!', 'ok');
+   document.getElementById('catNome').value = '';
+   carregarCategorias();
+  } else {
+   mostrarMsg('Erro: ' + (resp.mensagem || 'desconhecido'), 'erro');
+  }
+ });
+}
+
+let editCatId = null;
+function editarCategoria(id) {
+ const c = categoriasData.find(x => x.id === id);
+ if (!c) return;
+ editCatId = c.id;
+ const nome = prompt('Editar nome da categoria:', c.nome);
+ if (nome && nome.trim()) {
+  fetch('/api/categoria/' + editCatId, {
+   method: 'PUT',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ nome: nome.trim() })
+  }).then(r => r.json()).then(resp => {
+   if (resp.status === 'ok') {
+    mostrarMsg('Categoria atualizada!', 'ok');
+    carregarCategorias();
+   } else mostrarMsg('Erro ao atualizar', 'erro');
+  });
+ }
+ editCatId = null;
+}
+
+function excluirCategoria(id) {
+ if (!confirm('Excluir esta categoria?')) return;
+ fetch('/api/categoria/' + id, { method: 'DELETE' })
+  .then(r => r.json()).then(() => {
+   carregarCategorias();
+   mostrarMsg('Categoria excluída', 'ok');
+  });
+}
+
+// ==================================================================
+// MARCAS
+// ==================================================================
+let marcasData = [];
+
+function carregarMarcas() {
+ fetch('/api/marcas')
+  .then(r => r.json())
+  .then(dados => {
+   marcasData = dados;
+   renderizarMarcas();
+   preencherSelectMarca();
+  });
+}
+
+function renderizarMarcas() {
+ const tbody = document.getElementById('tabelaMarcas');
+ const sem = document.getElementById('semMarcas');
+ if (marcasData.length === 0) { tbody.innerHTML = ''; sem.style.display = 'block'; return; }
+ sem.style.display = 'none';
+ tbody.innerHTML = marcasData.map(m => `<tr>
+  <td><code>${m.id}</code></td>
+  <td><strong>${m.nome}</strong></td>
+  <td>
+   <button class="btn btn-sm btn-edit" onclick="editarMarca('${m.id}')">✏️ Editar</button>
+   <button class="btn btn-sm btn-delete" onclick="excluirMarca('${m.id}')">🗑</button>
+  </td>
+ </tr>`).join('');
+}
+
+function salvarMarca() {
+ const nome = document.getElementById('marcaNome').value.trim();
+ if (!nome) { mostrarMsg('Digite um nome para a marca', 'erro'); return; }
+ const id = nome.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+ fetch('/api/marca', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ id, nome })
+ }).then(r => r.json()).then(resp => {
+  if (resp.status === 'ok') {
+   mostrarMsg('Marca adicionada!', 'ok');
+   document.getElementById('marcaNome').value = '';
+   carregarMarcas();
+  } else {
+   mostrarMsg('Erro: ' + (resp.mensagem || 'desconhecido'), 'erro');
+  }
+ });
+}
+
+function editarMarca(id) {
+ const m = marcasData.find(x => x.id === id);
+ if (!m) return;
+ const nome = prompt('Editar nome da marca:', m.nome);
+ if (nome && nome.trim()) {
+  fetch('/api/marca/' + id, {
+   method: 'PUT',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ nome: nome.trim() })
+  }).then(r => r.json()).then(resp => {
+   if (resp.status === 'ok') {
+    mostrarMsg('Marca atualizada!', 'ok');
+    carregarMarcas();
+   } else mostrarMsg('Erro ao atualizar', 'erro');
+  });
+ }
+}
+
+function excluirMarca(id) {
+ if (!confirm('Excluir esta marca?')) return;
+ fetch('/api/marca/' + id, { method: 'DELETE' })
+  .then(r => r.json()).then(() => {
+   carregarMarcas();
+   mostrarMsg('Marca excluída', 'ok');
+  });
+}
+
+// ==================================================================
+// PRODUTOS
+// ==================================================================
+let produtosData = [];
+
+function preencherSelectCategoria() {
+ const sel = document.getElementById('pCategoria');
+ sel.innerHTML = '<option value="">-- Selecione --</option>';
+ categoriasData.forEach(c => {
+  sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+ });
+}
+
+function preencherSelectMarca() {
+ const sel = document.getElementById('pMarca');
+ sel.innerHTML = '<option value="">-- Selecione --</option>';
+ marcasData.forEach(m => {
+  sel.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+ });
+}
+
+function carregarProdutos() {
+ fetch('/api/produtos')
+  .then(r => r.json())
+  .then(dados => {
+   produtosData = dados;
+   renderizarProdutos();
    atualizarStats();
    atualizarResumo();
   });
 }
 
-function renderizarPedidos() {
- const tbody = document.getElementById('tabelaPedidos');
- const sem = document.getElementById('semPedidos');
- const filtrados = filtroStatus === 'todos' ? pedidosData : pedidosData.filter(p => p.status === filtroStatus);
- 
- if (filtrados.length === 0) {
-  tbody.innerHTML = '';
-  sem.style.display = 'block';
-  return;
- }
- sem.style.display = 'none';
-
- tbody.innerHTML = filtrados.map(p => {
-  const badgeClass = p.status === 'recebido' ? 'badge-recebido' : p.status === 'enviado' ? 'badge-enviado' : 'badge-entregue';
-  const itens = (p.itens || []).map(i => `${i.nome} x${i.qty}`).join(', ');
+function renderizarProdutos() {
+ const tbody = document.getElementById('tabelaProdutos');
+ if (produtosData.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">Nenhum produto cadastrado.</td></tr>'; return; }
+ tbody.innerHTML = produtosData.map(p => {
+  const estq = p.estoque || 0;
+  const estqClass = estq <= 3 ? 'estoque-baixo' : '';
+  const catNome = categoriasData.find(c => c.id === p.categoria)?.nome || p.categoria;
+  const marcaNome = marcasData.find(m => m.id === p.marca)?.nome || p.marca || '-';
   return `<tr>
-   <td style="font-family:monospace;font-size:12px;">${p.id}</td>
-   <td>${p.data || '-'}</td>
-   <td><strong>${p.nome || '-'}</strong><br><small style="color:#888;">${p.cidade || ''}${p.estado ? '/'+p.estado : ''}</small></td>
-   <td>${p.telefone || '-'}</td>
-   <td style="font-size:12px;">${itens || '-'}</td>
-   <td><strong>R$ ${(p.total || 0).toFixed(2)}</strong></td>
-   <td>${p.pagamento || '-'}${p.parcelas && p.parcelas > 1 ? ' ('+p.parcelas+'x)' : ''}</td>
-   <td><span class="badge ${badgeClass}">${p.status}</span></td>
+   <td>${p.id}</td>
+   <td><strong>${p.nome}</strong></td>
+   <td>${marcaNome}</td>
+   <td>R$ ${parseFloat(p.preco).toFixed(2)}</td>
+   <td>${catNome}</td>
+   <td class="${estqClass}">${estq} un.</td>
+   <td>${p.destaque ? '⭐ Sim' : '—'}</td>
    <td>
-    <button class="btn-edit btn-sm" onclick="alterarStatus('${p.id}','enviado')">📦 Enviar</button>
-    <button class="btn-edit btn-sm" onclick="alterarStatus('${p.id}','entregue')">✅ Entregar</button>
-    <button class="btn-delete btn-sm" onclick="excluirPedido('${p.id}')">🗑</button>
+    <button class="btn btn-sm btn-edit" onclick="editarProduto(${p.id})">✏️</button>
+    <button class="btn btn-sm btn-delete" onclick="excluirProduto(${p.id})">🗑</button>
    </td>
   </tr>`;
  }).join('');
-}
-
-function filtrarPedidos(status, btn) {
- filtroStatus = status;
- document.querySelectorAll('#tabPedidos .tab-bar button').forEach(b => b.classList.remove('active'));
- if (btn) btn.classList.add('active');
- renderizarPedidos();
-}
-
-function alterarStatus(id, novoStatus) {
- fetch('/api/pedido/' + id + '/status', {
-  method: 'PUT',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ status: novoStatus })
- }).then(r => r.json()).then(() => {
-  carregarPedidos();
-  mostrarMsg('Pedido ' + id + ' atualizado para ' + novoStatus, 'ok');
- });
-}
-
-function excluirPedido(id) {
- if (!confirm('Excluir pedido ' + id + '?')) return;
- fetch('/api/pedido/' + id, { method: 'DELETE' })
-  .then(r => r.json()).then(() => {
-   carregarPedidos();
-   mostrarMsg('Pedido ' + id + ' excluído', 'ok');
-  });
-}
-
-// === PRODUTOS ===
-let produtosData = [];
-
-function carregarProdutos() {
- fetch('/api/produtos')
-  .then(r => r.json())
-  .then(d => {
-   produtosData = d;
-   renderizarProdutos();
-   document.getElementById('statProdutos').textContent = d.length;
-  });
-}
-
-function renderizarProdutos() {
- const tbody = document.getElementById('tabelaProdutos');
- tbody.innerHTML = produtosData.map(p => `<tr>
-  <td>${p.id}</td>
-  <td><img src="/static/img/produtos/${p.imagem}" style="width:40px;height:50px;object-fit:contain;" onerror="this.style.display='none'"></td>
-  <td><strong>${p.nome}</strong></td>
-  <td>${p.marca || '-'}</td>
-  <td>R$ ${p.preco.toFixed(2)}</td>
-  <td>${p.categoria}</td>
-  <td>${p.destaque ? '⭐ Sim' : '-'}</td>
-  <td>
-   <button class="btn-edit btn-sm" onclick="editarProduto(${p.id})">✏️ Editar</button>
-   <button class="btn-delete btn-sm" onclick="excluirProduto(${p.id})">🗑</button>
-  </td>
- </tr>`).join('');
 }
 
 function editarProduto(id) {
@@ -332,12 +488,18 @@ function editarProduto(id) {
  document.getElementById('pNome').value = p.nome;
  document.getElementById('pMarca').value = p.marca || '';
  document.getElementById('pPreco').value = p.preco;
- document.getElementById('pCategoria').value = p.categoria;
+ document.getElementById('pCategoria').value = p.categoria || '';
+ document.getElementById('pEstoque').value = p.estoque || 0;
  document.getElementById('pDesc').value = p.descricao || '';
  document.getElementById('pImagem').value = p.imagem || '';
  document.getElementById('pDestaque').value = p.destaque ? 'true' : 'false';
  document.getElementById('btnSalvarProduto').textContent = 'Atualizar Produto';
  document.getElementById('tabProdutos').scrollIntoView();
+ // Garante dropdowns populados
+ preencherSelectCategoria();
+ preencherSelectMarca();
+ document.getElementById('pMarca').value = p.marca || '';
+ document.getElementById('pCategoria').value = p.categoria || '';
 }
 
 function cancelarEdicao() {
@@ -354,10 +516,14 @@ function salvarProduto(event) {
   marca: document.getElementById('pMarca').value,
   preco: parseFloat(document.getElementById('pPreco').value),
   categoria: document.getElementById('pCategoria').value,
+  estoque: parseInt(document.getElementById('pEstoque').value) || 0,
   descricao: document.getElementById('pDesc').value,
   imagem: document.getElementById('pImagem').value || 'perfume_png_01.png',
   destaque: document.getElementById('pDestaque').value === 'true'
  };
+
+ if (!dados.categoria) { mostrarMsg('Selecione uma categoria!', 'erro'); return; }
+ if (!dados.marca) { mostrarMsg('Selecione uma marca!', 'erro'); return; }
 
  const method = editId ? 'PUT' : 'POST';
  const url = editId ? `/api/produto/${editId}` : '/api/produto';
@@ -386,9 +552,80 @@ function excluirProduto(id) {
   });
 }
 
+// ==================================================================
+// PEDIDOS
+// ==================================================================
+let pedidosData = [];
+let filtroStatus = 'todos';
+
+function carregarPedidos() {
+ fetch('/api/pedidos')
+  .then(r => r.json())
+  .then(dados => {
+   pedidosData = dados;
+   renderizarPedidos();
+   atualizarStats();
+   atualizarResumo();
+  });
+}
+
+function renderizarPedidos() {
+ const tbody = document.getElementById('tabelaPedidos');
+ const sem = document.getElementById('semPedidos');
+ const filtrados = filtroStatus === 'todos' ? pedidosData : pedidosData.filter(p => p.status === filtroStatus);
+ if (filtrados.length === 0) { tbody.innerHTML = ''; sem.style.display = 'block'; return; }
+ sem.style.display = 'none';
+ tbody.innerHTML = filtrados.map(p => {
+  const badgeClass = p.status === 'recebido' ? 'badge-recebido' : p.status === 'enviado' ? 'badge-enviado' : 'badge-entregue';
+  const itens = (p.itens || []).map(i => `${i.nome} x${i.qty}`).join(', ');
+  return `<tr>
+   <td style="font-family:monospace;font-size:12px;">${p.id}</td>
+   <td>${p.data || '-'}</td>
+   <td><strong>${p.nome || '-'}</strong><br><small style="color:#888;">${p.cidade || ''}${p.estado ? '/'+p.estado : ''}</small></td>
+   <td>${p.telefone || '-'}</td>
+   <td style="font-size:12px;">${itens || '-'}</td>
+   <td><strong>R$ ${(p.total || 0).toFixed(2)}</strong></td>
+   <td>${p.pagamento || '-'}${p.parcelas && p.parcelas > 1 ? ' ('+p.parcelas+'x)' : ''}</td>
+   <td><span class="badge ${badgeClass}">${p.status}</span></td>
+   <td>
+    <button class="btn btn-sm btn-edit" onclick="alterarStatus('${p.id}','enviado')">📦 Enviar</button>
+    <button class="btn btn-sm btn-edit" onclick="alterarStatus('${p.id}','entregue')">✅ Entregar</button>
+    <button class="btn btn-sm btn-delete" onclick="excluirPedido('${p.id}')">🗑</button>
+   </td>
+  </tr>`;
+ }).join('');
+}
+
+function filtrarPedidos(status, btn) {
+ filtroStatus = status;
+ document.querySelectorAll('#tabPedidos .tab-bar button').forEach(b => b.classList.remove('active'));
+ if (btn) btn.classList.add('active');
+ renderizarPedidos();
+}
+
+function alterarStatus(id, novoStatus) {
+ if (novoStatus === 'enviado' && !confirm('Confirmar envio?')) return;
+ if (novoStatus === 'entregue' && !confirm('Confirmar entrega?')) return;
+ fetch('/api/pedido/' + id + '/status', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ status: novoStatus })
+ }).then(r => r.json()).then(() => {
+  carregarPedidos();
+  mostrarMsg('Status atualizado!', 'ok');
+ });
+}
+
+function excluirPedido(id) {
+ if (!confirm('Excluir pedido?')) return;
+ fetch('/api/pedido/' + id, { method: 'DELETE' })
+  .then(r => r.json()).then(() => { carregarPedidos(); mostrarMsg('Pedido excluído', 'ok'); });
+}
+
 // === STATS ===
 function atualizarStats() {
  document.getElementById('statPedidos').textContent = pedidosData.length;
+ document.getElementById('statProdutos').textContent = produtosData.length;
  const receita = pedidosData.reduce((s, p) => s + (p.total || 0), 0);
  document.getElementById('statReceita').textContent = 'R$ ' + receita.toFixed(2);
 }
@@ -399,10 +636,12 @@ function atualizarResumo() {
  const enviados = pedidosData.filter(p => p.status === 'enviado').length;
  const entregues = pedidosData.filter(p => p.status === 'entregue').length;
  const receita = pedidosData.reduce((s, p) => s + (p.total || 0), 0);
+ const estqTotal = produtosData.reduce((s, p) => s + (parseInt(p.estoque) || 0), 0);
  document.getElementById('cfgResumo').innerHTML =
   `<p>📦 Total de pedidos: <strong>${total}</strong></p>
    <p>🕐 Aguardando: <strong>${recebidos}</strong> | Em transporte: <strong>${enviados}</strong> | Entregues: <strong>${entregues}</strong></p>
-   <p>💰 Receita total: <strong>R$ ${receita.toFixed(2)}</strong></p>`;
+   <p>💰 Receita total: <strong>R$ ${receita.toFixed(2)}</strong></p>
+   <p>🧴 Produtos cadastrados: <strong>${produtosData.length}</strong> | Estoque total: <strong>${estqTotal} un.</strong></p>`;
 }
 
 // === CONFIG ===
@@ -422,20 +661,12 @@ function salvarConfig() {
  });
 }
 
-// === MSG ===
-function mostrarMsg(texto, tipo) {
- const el = document.getElementById('msg');
- el.textContent = texto;
- el.className = 'msg msg-' + tipo;
- setTimeout(() => el.className = 'msg', 3000);
-}
-
-function toggleCart(el) { /* apenas no admin */ }
-
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
  carregarPedidos();
  carregarProdutos();
+ carregarCategorias();
+ carregarMarcas();
 });
 </script>
 </body>
